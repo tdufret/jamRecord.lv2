@@ -12,7 +12,7 @@
 	CXXFLAGS = -I. -Wall -ffast-math  `pkg-config --cflags sndfile`
 	LDFLAGS = -I. -shared -Llibrary -lc -lm  -fPIC -DPIC `pkg-config --libs sndfile` 
 
-	OBJECTS = $(NAME).cpp 
+	OBJECTS = $(NAME).c 
 
 	## output style (bash colours)
 	BLUE = "\033[1;34m"
