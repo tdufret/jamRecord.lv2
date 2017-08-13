@@ -26,7 +26,6 @@
 # Translations to various languages can be added by putting a language tag
 # after strings as shown.
   	doap:name "JamRecord Stereo";
-	doap:name "Simple Amplifier" ;
 	doap:license <http://opensource.org/licenses/isc> ;
 	lv2:optionalFeature lv2:hardRTCapable ;
 

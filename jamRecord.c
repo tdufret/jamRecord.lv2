@@ -53,6 +53,10 @@ typedef enum {
   OUTPUT_R_PI = 7
 } PortIndex;
 
+/* maximum recoding duration supported by the plugin (in seconds) */
+/* used to determine the data ring buffer size                    */
+#define MAX_RECORDING_DURATION 60      /* test value */
+
 /**
    Every plugin defines a private structure for the plugin instance.  All data
    associated with a plugin instance is stored here, and is available to
@@ -69,6 +73,11 @@ typedef struct {
   const float* input_r;
   float*       output_l;
   float*       output_r;
+  double       sample_rate;     /* to store sample rate value provided by host */
+  int          record_duration; /* recording duration - to be set by user */
+  float*       data_buffer;     /* pointer to the data ring buffer */
+  int          write_ptr;       /* buffer position of the next data to be wrote */
+  int          read_ptr;        /* buffer position of the next data to be red   */
 } JamRecord_t;
 
 /**
@@ -89,6 +98,9 @@ instantiate(const LV2_Descriptor*    descriptor,
 {
   JamRecord_t* jamRecord = (JamRecord_t*)calloc(1, sizeof(JamRecord_t));
 
+  /* store rate value */
+  jamRecord->sample_rate = rate;
+  
   return (LV2_Handle)jamRecord;
 }
 
@@ -147,6 +159,17 @@ connect_port(LV2_Handle instance,
 static void
 activate(LV2_Handle instance)
 {
+  JamRecord_t* jamRecord = (JamRecord_t*)instance;
+  
+  jamRecord->record_duration = 50;      /* for tests - to be set from interface in futur */
+  jamRecord->write_ptr = 0; 
+  jamRecord->read_ptr = 0;
+
+
+  /* allocate a ring buffer to store audio data */
+  /* TODO */
+  jamRecord->data_buffer = (float*) malloc(jamRecord->sample_rate * MAX_RECORDING_DURATION * sizeof(float));
+ 
 }
 
 /**
@@ -202,7 +225,10 @@ deactivate(LV2_Handle instance)
 static void
 cleanup(LV2_Handle instance)
 {
-	free(instance);
+  JamRecord_t* jamRecord = (JamRecord_t*)instance;
+
+  free(jamRecord->data_buffer);
+  free(instance);
 }
 
 /**
