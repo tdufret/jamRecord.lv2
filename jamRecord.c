@@ -75,9 +75,10 @@ typedef struct {
   float*       output_r;
   double       sample_rate;     /* to store sample rate value provided by host */
   int          record_duration; /* recording duration - to be set by user */
-  float*       data_buffer;     /* pointer to the data ring buffer */
-  int          write_ptr;       /* buffer position of the next data to be wrote */
-  int          read_ptr;        /* buffer position of the next data to be red   */
+  float*       data_buffer_l;   /* pointer to the left channel data ring buffer */
+  float*       data_buffer_r;   /* pointer to the right channel data ring buffer */
+  unsigned long write_ptr;       /* buffer position of the next data to be wrote */
+  unsigned long read_ptr;        /* buffer position of the next data to be red   */
 } JamRecord_t;
 
 /**
@@ -167,8 +168,9 @@ activate(LV2_Handle instance)
 
 
   /* allocate a ring buffer to store audio data */
-  /* TODO */
-  jamRecord->data_buffer = (float*) malloc(jamRecord->sample_rate * MAX_RECORDING_DURATION * sizeof(float));
+  /* to be moved into instantiate() ? */
+  jamRecord->data_buffer_l = (float*) malloc(jamRecord->sample_rate * MAX_RECORDING_DURATION * sizeof(float));
+  jamRecord->data_buffer_r = (float*) malloc(jamRecord->sample_rate * MAX_RECORDING_DURATION * sizeof(float));
  
 }
 
@@ -181,7 +183,10 @@ activate(LV2_Handle instance)
 static void
 run(LV2_Handle instance, uint32_t n_samples)
 {
+  /*
   const JamRecord_t* jamRecord = (const JamRecord_t*)instance;
+  */
+  JamRecord_t* jamRecord = (JamRecord_t*)instance;
   
   const float        record   = *(jamRecord->record);
   const float* const input_l  = jamRecord->input_l;
@@ -189,15 +194,38 @@ run(LV2_Handle instance, uint32_t n_samples)
   float* const       output_l = jamRecord->output_l;
   float* const       output_r = jamRecord->output_r;
   
-  for (uint32_t pos = 0; pos < n_samples; pos++) {
-    output_l[pos] = input_l[pos];
-    output_r[pos] = input_r[pos];
+  for (uint32_t pos = 0; pos < n_samples; pos++)
+    {
+      /* forward left and right samples from inputs to outputs */
+      output_l[pos] = input_l[pos];
+      output_r[pos] = input_r[pos];
 
-    if (record == 1) {
-      /* TODO */
+      if (record == 1)
+	{
+	  /* store left and right samples into data_buffer */
+	  jamRecord->data_buffer_l[jamRecord->write_ptr] = input_l[pos];
+	  jamRecord->data_buffer_r[jamRecord->write_ptr] = input_r[pos];
+	  /* update write pointer */
+	  jamRecord->write_ptr++;
+	  if (jamRecord->write_ptr >= (jamRecord->sample_rate * MAX_RECORDING_DURATION))
+	    {
+	      /* write pointer reached the end of the ring buffer */
+	      jamRecord->write_ptr = 0;
+	    }
+	  /* if right pointer reached read pointer, update read pointer */
+	  if (jamRecord->write_ptr == jamRecord->read_ptr)
+	    {
+	      jamRecord->read_ptr++;
+	      if (jamRecord->read_ptr >= (jamRecord->sample_rate * MAX_RECORDING_DURATION))
+		{
+		  /* read pointer reached the end of the ring buffer */
+		  jamRecord->read_ptr = 0;
+		}
+	      
+	    }
+	}
+      
     }
-
-  }
 }
 
 /**
@@ -227,7 +255,8 @@ cleanup(LV2_Handle instance)
 {
   JamRecord_t* jamRecord = (JamRecord_t*)instance;
 
-  free(jamRecord->data_buffer);
+  free(jamRecord->data_buffer_l);
+  free(jamRecord->data_buffer_r);
   free(instance);
 }
 
