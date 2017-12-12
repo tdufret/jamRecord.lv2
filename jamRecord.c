@@ -27,7 +27,9 @@
    replacing `http:/` with `lv2` any header in the specification bundle can be
    included, in this case `lv2.h`.
 */
+#include "lv2/lv2plug.in/ns/ext/log/logger.h"
 #include "lv2/lv2plug.in/ns/lv2core/lv2.h"
+#include "lv2/lv2plug.in/ns/lv2core/lv2_util.h"
 
 /**
    The URI is the identifier for a plugin, and how the host associates this
@@ -37,6 +39,9 @@
    in the data files, the host will fail to load the plugin.
 */
 #define JAMRECORD_ST_URI "https://tdufret.fr/plugins/jamrecord#stereo_record"
+
+/* uncomment for debug mode */
+#define DEBUG
 
 /**
    In code, ports are referred to by index.  An enumeration of port indices
@@ -64,6 +69,9 @@ typedef enum {
    stored, since there is no additional instance data.
 */
 typedef struct {
+  LV2_URID_Map*  map;     // URID map feature
+  LV2_Log_Logger logger;  // Logger API
+
   // Port buffers
   const int*   format;
   const int*   record;
@@ -73,12 +81,19 @@ typedef struct {
   const float* input_r;
   float*       output_l;
   float*       output_r;
+
   double       sample_rate;     /* to store sample rate value provided by host */
   int          record_duration; /* recording duration - to be set by user */
   float*       data_buffer_l;   /* pointer to the left channel data ring buffer */
   float*       data_buffer_r;   /* pointer to the right channel data ring buffer */
   unsigned long write_ptr;       /* buffer position of the next data to be wrote */
   unsigned long read_ptr;        /* buffer position of the next data to be red   */
+
+#ifdef DEBUG
+  int          prev_record;
+  int          prev_save;
+#endif
+  
 } JamRecord_t;
 
 /**
@@ -98,9 +113,26 @@ instantiate(const LV2_Descriptor*    descriptor,
             const LV2_Feature* const* features)
 {
   JamRecord_t* jamRecord = (JamRecord_t*)calloc(1, sizeof(JamRecord_t));
-
+  
+  // Scan host features for URID map
+  const char* missing = lv2_features_query(
+					   features,
+					   LV2_LOG__log,  &jamRecord->logger.log, false,
+					   LV2_URID__map, &jamRecord->map, true,
+					   NULL);
+  lv2_log_logger_set_map(&jamRecord->logger, jamRecord->map);
+  if (missing) {
+    lv2_log_error(&jamRecord->logger, "Missing feature <%s>\n", missing);
+    free(jamRecord);
+    return NULL;
+  }
+  
   /* store rate value */
   jamRecord->sample_rate = rate;
+
+#ifdef DEBUG
+  lv2_log_trace(&jamRecord->logger, "Instanciation done\n");
+#endif
   
   return (LV2_Handle)jamRecord;
 }
@@ -165,13 +197,19 @@ activate(LV2_Handle instance)
   jamRecord->record_duration = 50;      /* for tests - to be set from interface in futur */
   jamRecord->write_ptr = 0; 
   jamRecord->read_ptr = 0;
-
+#ifdef DEBUG
+  jamRecord->prev_record = 0;
+  jamRecord->prev_save = 0;
+#endif  
 
   /* allocate a ring buffer to store audio data */
   /* to be moved into instantiate() ? */
   jamRecord->data_buffer_l = (float*) malloc(jamRecord->sample_rate * MAX_RECORDING_DURATION * sizeof(float));
   jamRecord->data_buffer_r = (float*) malloc(jamRecord->sample_rate * MAX_RECORDING_DURATION * sizeof(float));
  
+#ifdef DEBUG
+  lv2_log_trace(&jamRecord->logger, "Acitvation done\n");
+#endif
 }
 
 /**
@@ -188,11 +226,13 @@ run(LV2_Handle instance, uint32_t n_samples)
   */
   JamRecord_t* jamRecord = (JamRecord_t*)instance;
   
-  const float        record   = *(jamRecord->record);
+  const int          record   = *(jamRecord->record);
+  const int          save     = *(jamRecord->save);
   const float* const input_l  = jamRecord->input_l;
   const float* const input_r  = jamRecord->input_r;
   float* const       output_l = jamRecord->output_l;
   float* const       output_r = jamRecord->output_r;
+
   
   for (uint32_t pos = 0; pos < n_samples; pos++)
     {
@@ -200,6 +240,19 @@ run(LV2_Handle instance, uint32_t n_samples)
       output_l[pos] = input_l[pos];
       output_r[pos] = input_r[pos];
 
+#ifdef DEBUG
+      if (jamRecord->prev_record != record)
+	{
+	  lv2_log_trace(&jamRecord->logger, "record value changed: %d\n", record);
+	  jamRecord->prev_record = record;
+	}
+      if (jamRecord->prev_save != save)
+	{
+	  lv2_log_trace(&jamRecord->logger, "save value changed: %d\n", save);
+	  jamRecord->prev_save = save;
+	}
+#endif
+      
       if (record == 1)
 	{
 	  /* store left and right samples into data_buffer */
@@ -223,9 +276,9 @@ run(LV2_Handle instance, uint32_t n_samples)
 		}
 	      
 	    }
-	}
+	} /* if (record == 1) */
       
-    }
+    } /* for pos */
 }
 
 /**
@@ -242,6 +295,11 @@ run(LV2_Handle instance, uint32_t n_samples)
 static void
 deactivate(LV2_Handle instance)
 {
+#ifdef DEBUG
+  JamRecord_t* jamRecord = (JamRecord_t*)instance;
+
+  lv2_log_trace(&jamRecord->logger, "Deacitvation done\n");
+#endif
 }
 
 /**
