@@ -60,7 +60,7 @@ typedef enum {
 
 /* maximum recoding duration supported by the plugin (in seconds) */
 /* used to determine the data ring buffer size                    */
-#define MAX_RECORDING_DURATION 60      /* test value */
+#define MAX_RECORDING_DURATION 10      /* test value */
 
 /**
    Every plugin defines a private structure for the plugin instance.  All data
@@ -243,17 +243,19 @@ run(LV2_Handle instance, uint32_t n_samples)
 #ifdef DEBUG
       if (jamRecord->prev_record != record)
 	{
-	  lv2_log_trace(&jamRecord->logger, "record value changed: %d\n", record);
+	  lv2_log_trace(&jamRecord->logger, "Record value changed: %d\n", record);
+	  lv2_log_trace(&jamRecord->logger, " - write pointer: %lx\n", jamRecord->write_ptr);
+	  lv2_log_trace(&jamRecord->logger, " - read  pointer: %lx\n", jamRecord->read_ptr);
 	  jamRecord->prev_record = record;
 	}
       if (jamRecord->prev_save != save)
 	{
-	  lv2_log_trace(&jamRecord->logger, "save value changed: %d\n", save);
+	  lv2_log_trace(&jamRecord->logger, "Save value changed: %d\n", save);
 	  jamRecord->prev_save = save;
 	}
 #endif
       
-      if (record == 1)
+      if (record != 0)
 	{
 	  /* store left and right samples into data_buffer */
 	  jamRecord->data_buffer_l[jamRecord->write_ptr] = input_l[pos];
@@ -263,6 +265,9 @@ run(LV2_Handle instance, uint32_t n_samples)
 	  if (jamRecord->write_ptr >= (jamRecord->sample_rate * MAX_RECORDING_DURATION))
 	    {
 	      /* write pointer reached the end of the ring buffer */
+#ifdef DEBUG
+	      lv2_log_trace(&jamRecord->logger, "Write pointer reached the end of the ring buffer: %lx\n", jamRecord->write_ptr);
+#endif
 	      jamRecord->write_ptr = 0;
 	    }
 	  /* if right pointer reached read pointer, update read pointer */
@@ -272,6 +277,9 @@ run(LV2_Handle instance, uint32_t n_samples)
 	      if (jamRecord->read_ptr >= (jamRecord->sample_rate * MAX_RECORDING_DURATION))
 		{
 		  /* read pointer reached the end of the ring buffer */
+#ifdef DEBUG
+		  lv2_log_trace(&jamRecord->logger, "Read pointer reached the end of the ring buffer: %lx\n", jamRecord->read_ptr);
+#endif
 		  jamRecord->read_ptr = 0;
 		}
 	      
