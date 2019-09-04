@@ -84,8 +84,8 @@ typedef struct {
   int          record_duration; /* recording duration - to be set by user */
   float*       data_buffer_l;   /* pointer to the left channel data ring buffer */
   float*       data_buffer_r;   /* pointer to the right channel data ring buffer */
-  unsigned long write_ptr;       /* buffer position of the next data to be wrote */
-  unsigned long read_ptr;        /* buffer position of the next data to be red   */
+  unsigned long write_ptr;      /* buffer position of the next data to be wrote */
+  unsigned long read_ptr;       /* buffer position of the next data to be red   */
 
 #ifdef DEBUG
   int          prev_record;
@@ -241,14 +241,28 @@ run(LV2_Handle instance, uint32_t n_samples)
 #ifdef DEBUG
       if (jamRecord->prev_record != record)
         {
-          lv2_log_trace(&jamRecord->logger, "Record value changed: %d\n", record);
-          lv2_log_trace(&jamRecord->logger, " - write pointer: %lx\n", jamRecord->write_ptr);
-          lv2_log_trace(&jamRecord->logger, " - read  pointer: %lx\n", jamRecord->read_ptr);
+          if (record != 0)
+            {
+              lv2_log_trace(&jamRecord->logger, "Recording re-enabled.\n");
+              jamRecord->read_ptr = jamRecord->write_ptr;
+            }
+          else
+            {
+              lv2_log_trace(&jamRecord->logger, "Recording disabled.\n");
+              lv2_log_trace(&jamRecord->logger, " - write pointer: %lx\n", jamRecord->write_ptr);
+              lv2_log_trace(&jamRecord->logger, " - read  pointer: %lx\n", jamRecord->read_ptr);
+            }
           jamRecord->prev_record = record;
         }
       if (jamRecord->prev_save != save)
         {
           lv2_log_trace(&jamRecord->logger, "Save value changed: %d\n", save);
+          if (save != 0)
+            {
+              // Stop recording
+              // Save data to file
+              // Handle record and save button status
+            }
           jamRecord->prev_save = save;
         }
 #endif
