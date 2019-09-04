@@ -1,7 +1,5 @@
 /*
   Copyright 2017 Tristan Halna du Fretay <tdufret@yahoo.fr>
-  Copyright 2006-2016 David Robillard <d@drobilla.net>
-  Copyright 2006 Steve Harris <steve@plugin.org.uk>
 
   Permission to use, copy, modify, and/or distribute this software for any
   purpose with or without fee is hereby granted, provided that the above
@@ -116,10 +114,10 @@ instantiate(const LV2_Descriptor*    descriptor,
   
   // Scan host features for URID map
   const char* missing = lv2_features_query(
-					   features,
-					   LV2_LOG__log,  &jamRecord->logger.log, false,
-					   LV2_URID__map, &jamRecord->map, true,
-					   NULL);
+                                           features,
+                                           LV2_LOG__log,  &jamRecord->logger.log, false,
+                                           LV2_URID__map, &jamRecord->map, true,
+                                           NULL);
   lv2_log_logger_set_map(&jamRecord->logger, jamRecord->map);
   if (missing) {
     lv2_log_error(&jamRecord->logger, "Missing feature <%s>\n", missing);
@@ -222,7 +220,7 @@ static void
 run(LV2_Handle instance, uint32_t n_samples)
 {
   /*
-  const JamRecord_t* jamRecord = (const JamRecord_t*)instance;
+    const JamRecord_t* jamRecord = (const JamRecord_t*)instance;
   */
   JamRecord_t* jamRecord = (JamRecord_t*)instance;
   
@@ -242,49 +240,53 @@ run(LV2_Handle instance, uint32_t n_samples)
 
 #ifdef DEBUG
       if (jamRecord->prev_record != record)
-	{
-	  lv2_log_trace(&jamRecord->logger, "Record value changed: %d\n", record);
-	  lv2_log_trace(&jamRecord->logger, " - write pointer: %lx\n", jamRecord->write_ptr);
-	  lv2_log_trace(&jamRecord->logger, " - read  pointer: %lx\n", jamRecord->read_ptr);
-	  jamRecord->prev_record = record;
-	}
+        {
+          lv2_log_trace(&jamRecord->logger, "Record value changed: %d\n", record);
+          lv2_log_trace(&jamRecord->logger, " - write pointer: %lx\n", jamRecord->write_ptr);
+          lv2_log_trace(&jamRecord->logger, " - read  pointer: %lx\n", jamRecord->read_ptr);
+          jamRecord->prev_record = record;
+        }
       if (jamRecord->prev_save != save)
-	{
-	  lv2_log_trace(&jamRecord->logger, "Save value changed: %d\n", save);
-	  jamRecord->prev_save = save;
-	}
+        {
+          lv2_log_trace(&jamRecord->logger, "Save value changed: %d\n", save);
+          jamRecord->prev_save = save;
+        }
 #endif
       
       if (record != 0)
-	{
-	  /* store left and right samples into data_buffer */
-	  jamRecord->data_buffer_l[jamRecord->write_ptr] = input_l[pos];
-	  jamRecord->data_buffer_r[jamRecord->write_ptr] = input_r[pos];
-	  /* update write pointer */
-	  jamRecord->write_ptr++;
-	  if (jamRecord->write_ptr >= (jamRecord->sample_rate * MAX_RECORDING_DURATION))
-	    {
-	      /* write pointer reached the end of the ring buffer */
+        {
+          /* store left and right samples into data_buffer */
+          jamRecord->data_buffer_l[jamRecord->write_ptr] = input_l[pos];
+          jamRecord->data_buffer_r[jamRecord->write_ptr] = input_r[pos];
+          /* update write pointer */
+          jamRecord->write_ptr++;
+          if (jamRecord->write_ptr >= (jamRecord->sample_rate * MAX_RECORDING_DURATION))
+            {
+              /* write pointer reached the end of the ring buffer */
 #ifdef DEBUG
-	      lv2_log_trace(&jamRecord->logger, "Write pointer reached the end of the ring buffer: %lx\n", jamRecord->write_ptr);
+              lv2_log_trace(&jamRecord->logger,
+                            "Write pointer reached the end of the ring buffer: %lx\n",
+                            jamRecord->write_ptr);
 #endif
-	      jamRecord->write_ptr = 0;
-	    }
-	  /* if right pointer reached read pointer, update read pointer */
-	  if (jamRecord->write_ptr == jamRecord->read_ptr)
-	    {
-	      jamRecord->read_ptr++;
-	      if (jamRecord->read_ptr >= (jamRecord->sample_rate * MAX_RECORDING_DURATION))
-		{
-		  /* read pointer reached the end of the ring buffer */
+              jamRecord->write_ptr = 0;
+            }
+          /* if write pointer reached read pointer, update read pointer */
+          if (jamRecord->write_ptr == jamRecord->read_ptr)
+            {
+              jamRecord->read_ptr++;
+              if (jamRecord->read_ptr >= (jamRecord->sample_rate * MAX_RECORDING_DURATION))
+                {
+                  /* read pointer reached the end of the ring buffer */
 #ifdef DEBUG
-		  lv2_log_trace(&jamRecord->logger, "Read pointer reached the end of the ring buffer: %lx\n", jamRecord->read_ptr);
+                  lv2_log_trace(&jamRecord->logger,
+                                "Read pointer reached the end of the ring buffer: %lx\n",
+                                jamRecord->read_ptr);
 #endif
-		  jamRecord->read_ptr = 0;
-		}
-	      
-	    }
-	} /* if (record == 1) */
+                  jamRecord->read_ptr = 0;
+                }
+              
+            }
+        } /* if (record == 1) */
       
     } /* for pos */
 }
@@ -339,7 +341,7 @@ cleanup(LV2_Handle instance)
 static const void*
 extension_data(const char* uri)
 {
-	return NULL;
+  return NULL;
 }
 
 /**
@@ -348,14 +350,14 @@ extension_data(const char* uri)
    library constructors and destructors to clean up properly.
 */
 static const LV2_Descriptor descriptor = {
-	JAMRECORD_ST_URI,
-	instantiate,
-	connect_port,
-	activate,
-	run,
-	deactivate,
-	cleanup,
-	extension_data
+  JAMRECORD_ST_URI,
+  instantiate,
+  connect_port,
+  activate,
+  run,
+  deactivate,
+  cleanup,
+  extension_data
 };
 
 /**
@@ -372,8 +374,8 @@ LV2_SYMBOL_EXPORT
 const LV2_Descriptor*
 lv2_descriptor(uint32_t index)
 {
-	switch (index) {
-	case 0:  return &descriptor;
-	default: return NULL;
-	}
+  switch (index) {
+  case 0:  return &descriptor;
+  default: return NULL;
+  }
 }
