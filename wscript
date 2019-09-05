@@ -1,26 +1,25 @@
 #! /usr/bin/env python
 # encoding: utf-8
 
-from waflib.extras import autowaf as autowaf
-
 # Variables for 'waf dist'
 APPNAME = 'jamRecord.lv2'
-VERSION = '1.0.0'
+VERSION = '0.0.2'
 
 # Mandatory variables
 top = '.'
 out = 'build'
 
 
-def options(opt):
-    opt.load('compiler_c')
-    opt.load('lv2')
-    autowaf.set_options(opt)
+def options(ctx):
+    ctx.load('compiler_c')
+    ctx.load('lv2', tooldir='.')
 
-    
+    ctx.add_option('--debug', action='store', default=False, help='enable debug mode')
+
+
 def configure(ctx):
-    print('Configuring the project %s (v%s).' %(APPNAME, VERSION))
-    print('→ prefix is ' + ctx.options.prefix)
+    print('Configuring %s v%s project.' %(APPNAME,VERSION))
+    print('Debug mode is %s' %ctx.options.debug)
 
     ctx.load('compiler_c')
-    ctx.load('lv2')
+    ctx.load('lv2', tooldir='.')

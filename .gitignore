@@ -1,2 +1,5 @@
 *~
 jamRecord.lv2/
+.waf*
+build/
+*.pyc
